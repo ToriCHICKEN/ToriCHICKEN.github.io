@@ -315,6 +315,15 @@
         font-size: 12.5px; line-height: 2;
         color: var(--ink-soft);
         word-break: break-word;
+        white-space: pre-wrap;
+      }
+      .tags-box + .tags-head { margin-top: 30px; }
+      .char-note {
+        margin: 0 0 6px;
+        border: 1px solid rgba(255, 130, 105, .85);
+        background: rgba(165, 32, 20, .28);
+        padding: 10px 14px;
+        font-size: 13.5px; letter-spacing: .1em; line-height: 1.8;
       }
       .room-nav {
         display: flex; gap: 14px; margin-top: 56px; flex-wrap: wrap;
@@ -528,12 +537,19 @@
       .mcard-meta { padding: 14px 2px 0; display: flex; flex-direction: column; flex: 1; }
       .mcard-title {
         font-size: 16.5px; font-weight: 700; letter-spacing: .05em; line-height: 1.55;
-        word-break: break-word;
-        /* fixed two-line slot: long titles clamp with an ellipsis so
-           every card keeps the same height and the grid stays even */
-        height: calc(16.5px * 1.55 * 2);
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        /* one line, clipped: a title too long for the card runs the
+           same one-way ticker as the player's title (script below)
+           instead of clamping off mid-word; a title that fits the
+           card never moves */
+        height: calc(16.5px * 1.55);
+        white-space: nowrap;
         overflow: hidden;
+        text-overflow: clip;
+      }
+      .mcard-title .mt-scroll {
+        display: inline-block;
+        white-space: nowrap;
+        will-change: transform;
       }
       .mcard-sub {
         margin-top: 6px;
@@ -1008,8 +1024,19 @@
       .win-body .profile .row { grid-template-columns: 100px 1fr; }
       .win-body .mgrid { grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 22px 16px; }
       .win-foot-note {
-        margin-top: 26px; text-align: center;
+        margin-top: 18px; margin-bottom: 26px; text-align: center;
         font-size: 11.5px; letter-spacing: .16em; color: var(--ink-faint); line-height: 2;
+      }
+      /* music window header: the guidance line shares the big MUSIC
+         name's row, pushed to the right edge of the same line */
+      .win-body .detail-name.music-name {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 10px 18px;
+      }
+      .music-head-note {
+        min-width: 0;
+        font-size: 11.5px; font-weight: 500; letter-spacing: .16em; line-height: 1.7;
+        text-align: right;
       }
       @media (max-width: 560px) {
         .icons { top: 66px; padding: 6px 12px; gap: 16px 8px; }
@@ -1564,7 +1591,7 @@
          palette are untouched; only the information area changes.
          The folder window widens to the music window's width and its
          residents become music-card-sized: full-width square face,
-         bold name, room number and epithet, and a red 開く link. */
+         bold name, room number and epithet, over a hairline foot. */
       .win-folder { width: min(700px, calc(100% - 20px)); }
       .room-hero { display: flex; gap: 24px; align-items: flex-start; }
       .room-portrait {
@@ -1631,7 +1658,6 @@
       .cc-sub .mono { font-size: 11px; letter-spacing: .18em; color: var(--accent); }
       .cc-foot { margin-top: auto; padding-top: 14px; display: flex; align-items: center; gap: 10px; }
       .cc-foot .rule-line { flex: 1; border-top: 1px solid var(--line-soft); }
-      .cc-open { font-size: 12.5px; letter-spacing: .18em; color: var(--lip); white-space: nowrap; }
       @media (prefers-reduced-motion: reduce) {
         .char-card { transition: none; }
       }
@@ -2675,10 +2701,16 @@
       }
       .win .mcard.playing, .win .card:hover, .win .char-card:hover { border-color: rgba(111, 227, 165, .7) !important; }
 
-      /* ---- links: bright red for the dark ground ---- */
-      .win-body a, .card-foot .open, .cc-open { color: #ff7161 !important; }
-      .dl-btn, .copy-btn { color: #ff7161 !important; border-color: #ff7161 !important; background: none !important; }
-      .dl-btn:hover, .copy-btn.copied { background: #ff7161 !important; border-color: #ff7161 !important; color: #ffffff !important; }
+      /* ---- links: bright red for the dark ground ----
+         the DL button is an <a> too, but it is a button, not a
+         link: the generic anchor rule must not reach it, or its
+         label stays red no matter what .dl-btn says (the anchor
+         selector outranks the lone class). It is excluded here
+         and pinned white below with the anchor in the selector,
+         so the white wins the cascade outright. */
+      .win-body a:not(.dl-btn), .card-foot .open { color: #ff7161 !important; }
+      .win-body a.dl-btn, .dl-btn, .copy-btn { color: #ffffff !important; border-color: #ff7161 !important; background: none !important; }
+      .win-body a.dl-btn:hover, .dl-btn:hover, .copy-btn.copied { background: #ff7161 !important; border-color: #ff7161 !important; color: #ffffff !important; }
       .win-body .text-btn:hover, .win-body .list-toggle:hover { border-bottom-color: #ff7161 !important; color: #ff7161 !important; }
       .win-body .room-nav .nav-btn:hover { border-color: #ff7161 !important; color: #ff7161 !important; }
       .start-menu button.sm-item:hover .sm-label { color: #ffffff !important; }
@@ -3083,6 +3115,86 @@
         color: #6fe3a5 !important;
       }
     </style>
+    <style>
+      /* ---------- FINAL 4: prompt text readability ----------
+         Only the prompt body in a character window changes: a thin
+         dark translucent backing sits behind the prompt text alone
+         (rgba(0,0,0,.38), rounded), lifting its contrast against
+         the glass and the wallpaper behind it. The window's glass
+         itself, and every other element, keep the shared material.
+         The prompt type grows a step and breathes wider, and each
+         section head is set off from its copy button: the label is
+         larger and bolder, the button is bigger and easier to hit.
+         The text content and what Copy puts on the clipboard are
+         untouched — this is presentation only. */
+      .win .win-body .room-sheet .tags-box,
+      .win .win-body .tags-box {
+        background: rgba(0, 0, 0, .38) !important;
+        background-image: none !important;
+        border: 1px solid rgba(255, 255, 255, .16) !important;
+        border-radius: 8px !important;
+        box-shadow: none !important;
+        padding: 18px 18px !important;
+        font-size: 14px !important;
+        line-height: 2.2 !important;
+        color: #ffffff !important;
+      }
+      .win-body .tags-head {
+        border-top: 1px solid rgba(255, 255, 255, .45) !important;
+        padding-top: 18px;
+        margin-bottom: 2px;
+        align-items: center;
+      }
+      .win-body .tags-box + .tags-head { margin-top: 38px; }
+      .win-body .tags-head .tags-sec-label,
+      .win-body .tags-head .tags-label,
+      .win-body .tags-head span {
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        letter-spacing: .22em !important;
+        color: #ffffff !important;
+      }
+      .win-body .copy-btn {
+        padding: 12px 24px !important;
+        min-height: 48px !important;
+        min-width: 104px;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        letter-spacing: .14em !important;
+        border-width: 1.5px !important;
+        border-radius: 6px !important;
+      }
+    </style>
+    <style>
+      /* ---------- start menu: external links in the right column ----------
+         Anchors wearing the sub-item's clothes, so zeta / note (and any
+         profile added later) sit in the same row and the same look as
+         the window actions above them. The button rules are scoped to
+         <button>, so the shared geometry is restated for <a> here; the
+         white-on-glass colours come from the generic .sm-item / .sm-label
+         rules, which are not element-scoped. The first link carries a
+         hairline and a breath of margin to set the links apart from
+         the actions without breaking the column's rhythm. */
+      .start-menu a.sm-item {
+        display: flex; align-items: center; gap: 11px;
+        width: 100%;
+        background: none; border: none;
+        padding: 7px 8px;
+        height: 44px; min-height: 44px; flex: none;
+        overflow: hidden;
+        text-align: left; color: var(--ink);
+        border-radius: 3px;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .start-menu a.sm-item:hover { background: rgba(255, 255, 255, .13); color: #ffffff; }
+      .start-menu a.sm-item:focus-visible { outline: 1px solid rgba(255, 255, 255, .7); outline-offset: -1px; }
+      .start-menu a.sm-ext-first {
+        margin-top: 7px;
+        border-top: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 0 0 3px 3px;
+      }
+    </style>
   </head>
   <body>
 
@@ -3104,7 +3216,7 @@
 
       <div class="start-menu hidden" id="start-menu" role="menu" aria-label="スタートメニュー">
         <div class="start-menu-head">
-          <a class="sm-user-icon" id="sm-user-icon" aria-label="CHICKEN の X（旧 Twitter）プロフィール" aria-disabled="true"><img src="assets/jacket-365.jpg" alt="" /></a>
+          <span class="sm-user-icon"><img src="assets/jacket-365.jpg" alt="" /></span>
           <div class="sm-user-meta">
             <span class="sm-user-name">CHICKEN</span>
           </div>
@@ -3137,6 +3249,20 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5" /><path d="M3 12h11M10 8l-4 4 4 4" /></svg>
               <span class="sm-text"><span class="sm-label" data-i18n="toEntrance">入口へ戻る</span></span>
             </button>
+            <!-- external links: same row, same look as the items above;
+                 add further profiles as more a.sm-ext rows here -->
+            <a class="sm-item sm-item-sub sm-ext sm-ext-first" href="https://x.com/torichicken__" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.5" /><path d="M14 4h6v6" /><path d="M20 4L11 13" /></svg>
+              <span class="sm-text"><span class="sm-label">X</span></span>
+            </a>
+            <a class="sm-item sm-item-sub sm-ext" href="https://zeta-ai.io/@ToriCHICKEN" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.5" /><path d="M14 4h6v6" /><path d="M20 4L11 13" /></svg>
+              <span class="sm-text"><span class="sm-label">zeta</span></span>
+            </a>
+            <a class="sm-item sm-item-sub sm-ext" href="https://note.com/torichicken__" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.5" /><path d="M14 4h6v6" /><path d="M20 4L11 13" /></svg>
+              <span class="sm-text"><span class="sm-label">note</span></span>
+            </a>
           </div>
         </div>
         <div class="sm-foot">
@@ -3259,7 +3385,6 @@
           copy: "タグをコピー", copied: "コピーしました",
           tagsLabel: "プロンプトタグ",
           prevRoom: "← 前へ", nextRoom: "次へ →",
-          folderHint: "開きたいキャラクターを選んでください",
           musicFoot: "ジャケットを押すと、その曲が流れます。",
           playPause: "再生／一時停止", prevTrack: "前の曲へ", nextTrack: "次の曲へ",
           seek: "再生位置",
@@ -3280,7 +3405,6 @@
           copy: "Copy tags", copied: "Copied",
           tagsLabel: "Prompt tags",
           prevRoom: "← Previous", nextRoom: "Next →",
-          folderHint: "Pick a character to open",
           musicFoot: "Tap a jacket and that track plays.",
           playPause: "Play / pause", prevTrack: "Previous track", nextTrack: "Next track",
           seek: "Playback position",
@@ -3301,7 +3425,6 @@
           copy: "태그 복사", copied: "복사했습니다",
           tagsLabel: "프롬프트 태그",
           prevRoom: "← 이전", nextRoom: "다음 →",
-          folderHint: "열고 싶은 캐릭터를 선택하세요",
           musicFoot: "재킷을 누르면 그 곡이 재생됩니다.",
           playPause: "재생 / 일시정지", prevTrack: "이전 곡", nextTrack: "다음 곡",
           seek: "재생 위치",
@@ -3322,6 +3445,457 @@
       })();
       function T(key) { return I18N[uiLang][key]; }
 
+      /* エクス (room 002): the prompt is registered in three parts —
+         appearance & expression, outfit, and the two joined as the
+         full text. Each part gets its own headed section and copy
+         button in the detail window. */
+      var EKS_FULL = `adult male, man in his late twenties,
+handsome beautiful man, gentle handsome face, refined masculine face, defined jawline, clean-shaven, pale skin, gentle expression, kind expression, soft gentle smile, relaxed eyebrows, narrow eyes, long narrow eyes, drooping outer eye corners, half-lidded eyes, heavy upper eyelids,
+
+very tall, slim build, lean slender body, narrow waist, long limbs,
+1.5::slim body with well-defined pectorals::,
+1.45::thick chest muscles::,
+
+1.5::white hair::,
+1.45::pure white hair::,
+1.5::short hair::,
+short hair on sides and back,
+1.4::swept bangs::,
+1.35::bangs falling over forehead::,
+1.3::short sidelocks::,
+
+teal eyes, light blue-green eyes, long eyelashes,
+
+1.5::single syringe-shaped earring on one ear::,
+miniature syringe charm earring, dangling on one ear only,
+
+doctor,
+1.5::transparent vinyl lab coat::,
+glossy vinyl, open coat,
+inner clothes visible through vinyl coat,
+1.5::teal shrug shirt::,
+cropped shirt cut off below chest,
+shirt collar and shoulders and long sleeves only,
+1.6::transparent torso::,
+1.55::clear see-through torso::,
+background visible through torso,
+translucent torso from below chest to waist,
+1.5::stylized white ribs inside transparent torso::,
+ribcage visible inside torso,
+sternum visible,
+transparent torso tucked into pants,
+1.5::long necktie over transparent torso::,
+pale necktie, necktie fully visible,
+1.5::white chest harness::,
+single wide white strap across upper chest,
+one diagonal white strap across torso,
+metal ring at center of chest,
+tight straps digging in,
+white pants,
+thigh strap,
+silver boots`;
+      var EKS_APPEARANCE_SECTION = `adult male, man in his late twenties,
+handsome beautiful man, gentle handsome face, refined masculine face, defined jawline, clean-shaven, pale skin, gentle expression, kind expression, soft gentle smile, relaxed eyebrows, narrow eyes, long narrow eyes, drooping outer eye corners, half-lidded eyes, heavy upper eyelids,
+
+very tall, slim build, lean slender body, narrow waist, long limbs,
+1.5::slim body with well-defined pectorals::,
+1.45::thick chest muscles::,
+
+1.5::white hair::,
+1.45::pure white hair::,
+1.5::short hair::,
+short hair on sides and back,
+1.4::swept bangs::,
+1.35::bangs falling over forehead::,
+1.3::short sidelocks::,
+
+teal eyes, light blue-green eyes, long eyelashes,
+
+1.5::single syringe-shaped earring on one ear::,
+miniature syringe charm earring, dangling on one ear only,
+
+1.6::transparent torso::,
+1.55::clear see-through torso::,
+background visible through torso,
+translucent torso from below chest to waist,
+1.5::stylized white ribs inside transparent torso::,
+ribcage visible inside torso,
+sternum visible,
+transparent torso tucked into pants`;
+      var EKS_CLOTHING = `doctor,
+1.5::transparent vinyl lab coat::,
+glossy vinyl, open coat,
+inner clothes visible through vinyl coat,
+1.5::teal shrug shirt::,
+cropped shirt cut off below chest,
+shirt collar and shoulders and long sleeves only,
+1.5::long necktie over transparent torso::,
+pale necktie, necktie fully visible,
+1.5::white chest harness::,
+single wide white strap across upper chest,
+one diagonal white strap across torso,
+metal ring at center of chest,
+tight straps digging in,
+white pants,
+thigh strap,
+silver boots`;
+
+      /* ニジ (room 000): same three-part registration as エクス —
+         full text, appearance & expression, and outfit (with the
+         silver ring block at the outfit section's end). */
+      var NIJI_HEAD = `male focus,
+young adult male, handsome man, pale skin,
+tall male, lean build,
+
+1.6::silky straight white hair tied in a low ponytail, rainbow colored inner hair::,
+1.6::smooth ponytail hanging straight down::,
+1.6::no bangs::,
+1.6::up bangs::,
+1.6::fully exposed forehead::,
+1.5::center-parted hair::,
+1.6::chin-length face-framing side strands::,
+1.4::low ponytail draped over one shoulder::,
+hair bow, rainbow bow, glossy enamel texture,
+
+1.6::closed eyes::,
+long eyelashes, white eyebrows,
+soft smile, open mouth, fang,
+
+1.7::silky straight white hair tied in a low ponytail, rainbow colored inner hair::,
+1.6::no bangs::,
+1.6::up bangs::,
+1.6::fully exposed forehead::,
+1.5::center-parted hair::,
+1.6::chin-length face-framing side strands::,
+1.4::low ponytail draped over one shoulder::,`;
+      var NIJI_CLOTHING = `white dress shirt, transparent blue vinyl necktie, plain silver tie pin,
+silver metallic pants, white dress shoes,`;
+      var NIJI_RING = `1.5::silver ring on left ring finger::,
+simple silver band ring,
+plain silver ring, no decoration,`;
+      var NIJI_FULL = NIJI_HEAD + "\n\n" + NIJI_CLOTHING + "\n\n" + NIJI_RING;
+      var NIJI_APPEARANCE_SECTION = NIJI_HEAD;
+      var NIJI_CLOTHING_SECTION = NIJI_CLOTHING + "\n\n" + NIJI_RING;
+
+      /* メディ (room 003) と カル (room 004): same three-part
+         registration — full text, appearance & expression (from the
+         head through the eye-colour block's "long eyelashes", the
+         embedded -1::red cross…:: line riding with the hairpin
+         block), and outfit (from "nurse, nurse uniform," to the
+         end). カル alone adds a fourth section, the UC, and the
+         red-cross caution note on its sheet. */
+      var MEDI_APPEARANCE = `petite, slim, very pale skin, small face, gentle older sister smile, soft smile, gentle expression, closed mouth smile, small smile, soft half-lidded eyes, relaxed eyebrows,
+
+1.6::bob cut::,
+1.55::silver white hair::,
+white hair,
+1.5::hair intake::,
+1.5::light blue inner hair::,
+1.45::aqua blue inner color::,
+blue underside of hair,
+inner hair peeking at nape and under sidelocks,
+chin-length hair,
+straight bob hair,
+sidelocks framing face,
+bangs,
+1.5::small light blue ribbon in hair::,
+
+1.6::miniature iv bag hairpin::,
+tiny translucent drip bag charm hair clip,
+measurement scale lines on the bag charm,
+-1::red cross, medical cross, cross emblem::,
+
+light blue eyes, pale aqua eyes, smiling eyes, white cross-shaped highlight in eyes, cross-shaped sparkle in pupils, long eyelashes,`;
+      var MEDI_CLOTHING = `nurse, nurse uniform,
+1.5::heart emblems only, every emblem is a heart shape::,
+1.5::white nurse cap::,
+small light blue heart emblem on nurse cap,
+white dress, light blue trim, collared dress, front buttons, short sleeves,
+small light blue heart emblem on chest,
+white apron, apron flat against front of dress, apron hem at waist, not covering skirt,
+1.6::two-layer skirt::,
+inner tight white miniskirt underneath,
+hem of inner skirt visible through vinyl,
+vinyl layer outside, inner skirt inside,
+1.7::transparent vinyl skirt::,
+1.65::clear vinyl, glossy vinyl::,
+1.6::form-fitting vinyl miniskirt::,
+1.55::body-hugging pencil skirt::,
+1.5::faint pale blue gradient tint on transparent vinyl::,
+gradient tint deeper blue at bottom hem fading to clear at top,
+1.5::light blue measurement scale lines printed on vinyl::,
+white thighhighs, lace trim thighhighs,
+pale blue mary janes`;
+      var MEDI_FULL = MEDI_APPEARANCE + "\n\n" + MEDI_CLOTHING;
+
+      var KARU_APPEARANCE = `petite, slim, very pale skin, small face, bright cheerful smile, open mouth smile, small fang, bright open eyes, raised eyebrows, blush,
+
+1.6::bob cut::,
+1.55::silver white hair::,
+silver white hair with pale pink tint,
+1.5::hair intake::,
+1.5::vivid red inner hair::,
+1.45::crimson inner color::,
+red underside of hair,
+inner hair peeking at nape and under sidelocks,
+chin-length hair,
+straight bob hair,
+sidelocks framing face,
+bangs,
+1.5::small red ribbon in hair::,
+
+1.6::miniature blood bag hairpin::,
+tiny translucent transfusion bag charm hair clip,
+measurement scale lines on the bag charm,
+-1::red cross, medical cross, cross emblem::,
+
+red eyes, crimson eyes, sparkling eyes, white cross-shaped highlight in eyes, cross-shaped sparkle in pupils, long eyelashes,`;
+      var KARU_CLOTHING = `nurse, nurse uniform,
+1.5::heart emblems only, every emblem is a heart shape::,
+1.5::white nurse cap::,
+small red heart emblem on nurse cap,
+white dress, red trim, collared dress, front buttons, short sleeves,
+small red heart emblem on chest,
+white apron, apron flat against front of dress, apron hem at waist, not covering skirt,
+1.6::two-layer skirt::,
+inner tight white miniskirt underneath,
+hem of inner skirt visible through vinyl,
+vinyl layer outside, inner skirt inside,
+1.7::transparent vinyl skirt::,
+1.65::clear vinyl, glossy vinyl::,
+1.6::form-fitting vinyl miniskirt::,
+1.55::body-hugging pencil skirt::,
+1.5::faint pale red gradient tint on transparent vinyl::,
+gradient tint deeper red at bottom hem fading to clear at top,
+1.5::red measurement scale lines printed on vinyl::,
+red vinyl trim,
+white thighhighs, lace trim thighhighs,
+red mary janes`;
+      var KARU_FULL = KARU_APPEARANCE + "\n\n" + KARU_CLOTHING;
+      var KARU_UC = `red cross, medical cross, red cross symbol, red cross emblem on clothing, red cross on nurse cap, red cross on hairpin`;
+
+      /* 鍋谷榎 (room 005) と 鍋谷柊 (room 006): same three-part
+         registration — full text, appearance & expression (from the
+         head through the earring block, ending at the bell line),
+         and outfit (from "1.4::wearing uniform loosely::," to the
+         end). 柊's outfit is the dress-shirt version. */
+      var ENOKI_APPEARANCE = `young adult man, adult male, handsome man, refined masculine face, pale skin,
+closed mouth smile, one corner of mouth raised, yaeba fang at mouth corner,
+1.4::longer face::,
+1.35::defined jawline::,
+1.3::angular jaw::,
+1.25::defined chin::,
+1.2::adult male bone structure::,
+1.15::mature facial proportions::,
+thick neck, adam's apple,
+
+tall slim build, moderate chest, adult proportions, small head relative to body, long limbs,
+
+medium layered hair,
+smooth large strands,
+lightly tousled,
+1.3::soft gentle waves::,
+1.25::loose wavy hair::,
+1.2::strands curving softly::,
+1.5::gradient hair::,
+1.45::pale orange roots::,
+1.4::white tips::,
+soft gradient transition,
+1.7::hair intake::,
+1.65::intake bangs::,
+1.6::intakes only in upper bangs::,
+2.0::long thick bangs covering eyes::,
+1.95::dense bangs ending just below eyes::,
+1.9::front hair covering upper face::,
+bangs tips at upper nose bridge,
+short sides,
+ears visible,
+1.7::hair tied at back of head::,
+1.65::small low ponytail at nape::,
+1.6::loose hair ending at nape::,
+ponytail tips fanning out into a few strands,
+
+1.6::red cord flower knot earring::,
+small gold bell below,`;
+      var ENOKI_CLOTHING = `1.4::wearing uniform loosely::,
+1.35::gakuran worn open::,
+1.3::gakuran buttons undone::,
+open black gakuran,
+white v-neck sweater with red stripes,
+white dress shirt under sweater,
+white shirt collar above sweater,
+top button of shirt undone,
+open shirt collar,
+loose collar,
+black pants,
+white ankle socks, socks visible above shoes,
+white school indoor shoes,
+uwabaki with blue toe cap,
+blue toe uwabaki`;
+      var ENOKI_FULL = ENOKI_APPEARANCE + "\n\n" + ENOKI_CLOTHING;
+
+      var HIIRAGI_APPEARANCE = `young adult man, adult male, handsome man, refined masculine face, pale skin,
+2.0::closed eyes::,
+1.95::eyes closed::,
+1.9::eyelids fully closed::,
+1.85::shut eyes::,
+1.6::curved closed eyelid lines::,
+1.55::smiling closed eyes::,
+1.6::laughing::,
+1.55::open mouth smile::,
+1.5::wide grin::,
+teeth,
+one fang tooth visible,
+raised eyebrows,
+1.4::longer face::,
+1.35::defined jawline::,
+1.3::angular jaw::,
+thick neck, adam's apple,
+
+tall slim build, moderate chest, adult proportions, small head relative to body, long limbs,
+
+medium layered hair,
+smooth large strands,
+lightly tousled,
+1.3::soft gentle waves::,
+1.25::loose wavy hair::,
+1.2::strands curving softly::,
+1.5::gradient hair::,
+1.45::light matcha green roots::,
+1.4::white tips::,
+soft gradient transition,
+1.7::hair up::,
+1.65::bangs swept up::,
+1.6::forehead exposed::,
+1.6::hair tied up at back of head::,
+1.55::small high ponytail at back of head::,
+1.5::hair gathered from head into ponytail::,
+short sides,
+ears visible,
+
+1.6::red cord flower knot earring::,
+small silver bell below,`;
+      var HIIRAGI_CLOTHING = `1.4::wearing uniform loosely::,
+1.35::gakuran worn open::,
+1.3::gakuran buttons undone::,
+open black gakuran,
+white dress shirt under gakuran,
+shirt collar,
+top button of shirt undone,
+open shirt collar,
+loose collar,
+black pants,
+white ankle socks, socks visible above shoes,
+white school indoor shoes,
+uwabaki with blue toe cap,
+blue toe uwabaki`;
+      var HIIRAGI_FULL = HIIRAGI_APPEARANCE + "\n\n" + HIIRAGI_CLOTHING;
+
+      /* トリィ (room 001): same three-part registration — full text,
+         appearance & expression (from the head through the second
+         hair block, ending at "1.6::hair intakes::,"), and outfit
+         (from "1.5::white dreamcore dress::," to the end). This
+         replaces the short tags string Torii carried before. */
+      var TORII_APPEARANCE = `petite girl, young girl, slightly long legs, slim proportions, 
+1.2::porcelain skin::, 
+
+1.6::long pure white hair in low twintails draped over shoulders, twintails reaching hips::, 
+1.6::hair intakes::, 
+1.5::short bangs above eyebrows::, 
+1.5::feathered wing shape only in lower half of twintails::, 
+pale blue holographic hair ribbons, iridescent halo, 
+
+1.3::big sleepy droopy eyes::, pale blue eyes, 
+soft listless expression, looking at viewer, light blush, small flat closed mouth, 
+
+1.7::long pure white hair in low twintails draped over shoulders, twintails reaching hips::, 
+1.6::hair intakes::,`;
+      var TORII_CLOTHING = `1.5::white dreamcore dress::, 
+white a-line dress, frilled round collar, small light blue neck bow, front buttons, 
+sheer sleeves, opaque bodice, 
+1.5::large pale rainbow shoulder bow on viewer's right side::, 
+small glossy pale yellow smiley sphere fixed in bow knot, 
+1.4::single slit opening directly below bow, landscape seen through slit: blue sky, clouds, green hill, red-roof house, black winding path::, 
+sheer white tulle pannier peeking below hem, 
+mint knee socks, water ripple print on sock fabric only, 
+white mary janes,`;
+      var TORII_FULL = TORII_APPEARANCE + "\n\n" + TORII_CLOTHING;
+
+      /* 鈴咲蘭 (room 007) と 鈴咲梨奈 (room 008): same three-part
+         registration — full text, appearance & expression (蘭: from
+         the head through the body block, ending at "thick thighs,";
+         梨奈: from the head through "scrunchie on wrist,"), and
+         outfit (蘭: from "1.4::zebra print camisole::," to the end;
+         梨奈: from "1.4::raglan t-shirt::," to the end). */
+      var RAN_APPEARANCE = `adult female, adult woman,
+beautiful gyaru face, glamorous face, dark tan skin, deep brown tan, heavy makeup, pink eyeshadow, thick eyelashes, long lower eyelashes, light blue-grey eyes, half-lidded eyes, high blush, pink blush on cheeks, glossy pink lips, open mouth smile, teeth, cheerful grin,
+
+1.5::very long hair::,
+1.45::long wavy hair::,
+1.4::platinum blonde hair::,
+pale blonde hair,
+voluminous wavy hair,
+loose waves,
+swept bangs,
+long sidelocks,
+
+1.5::sunglasses on head::,
+brown sunglasses,
+large gold hoop earrings,
+1.5::long pink acrylic nails::,
+decorated gyaru nails,
+gold necklace, cross pendant necklace,
+1.4::many bangles on both wrists::,
+stacked gold bangles, jangling bracelets,
+multiple thin hoop bracelets piled on arms,
+
+curvy body, large breasts, deep cleavage, slim waist, wide hips, thick thighs,`;
+      var RAN_CLOTHING = `1.4::zebra print camisole::,
+zebra print flowy top,
+handkerchief hem, asymmetric hem,
+draped fluttery fabric,
+spaghetti straps,
+loose flowing camisole,
+denim hot pants,
+light blue denim shorts, short shorts,
+1.4::wide belt with large gold buckle::,
+studded belt, wallet chain, chain belt drape,
+fur trim accessories,
+
+gyaru, kurogyaru, agejo gyaru, gal fashion, 2000s (style)`;
+      var RAN_FULL = RAN_APPEARANCE + "\n\n" + RAN_CLOTHING;
+
+      var RINA_APPEARANCE = `petite girl, young girl, slim, pale skin,
+cheerful smile, small smile, pink blush, large eyes, light blue-grey eyes, light pink eyeshadow, glossy pink lips,
+
+1.5::very long hair::,
+1.45::long straight hair::,
+1.4::platinum blonde hair::,
+pale blonde hair,
+straight hair reaching hips,
+straight bangs,
+1.4::one side up::,
+small side ponytail tied on one side,
+1.4::hair bobbles::,
+two round colorful bobbles on the hair tie,
+colorful hair clips,
+star hair clip, small hair pins on one side,
+
+small pendant necklace,
+scrunchie on wrist,`;
+      var RINA_CLOTHING = `1.4::raglan t-shirt::,
+white t-shirt with light blue sleeves,
+colorful retro logo print,
+1.4::tiered denim miniskirt::,
+layered frilled skirt, ruffled denim skirt,
+pink cardigan tied around waist,
+small crossbody bag, mini shoulder bag,
+white leg warmers, slouchy leg warmers,
+light blue sneakers,
+
+2000s (style), heisei girl, nostalgic girly fashion`;
+      var RINA_FULL = RINA_APPEARANCE + "\n\n" + RINA_CLOTHING;
+
       var CHARACTERS = [
         {
           room: "000", name: "ニジ", epithet: "飴リボンの住人",
@@ -3334,7 +3908,12 @@
             ["基調", "白×銀×透明な青"]
           ],
           record: "白い外層と鮮やかな虹色インナーの二層ヘア、センターパート。前髪の裏側からも虹が覗く。うなじで束ねた低いポニーテールを片肩から腰まで垂らし、結び目には虹色メタリックの飴細工風リボン。閉じ目で口を開けて楽しげに笑う、牙の見える笑顔が標準。服装は白シャツに透明な青いビニールのネクタイ（銀の装飾なしネクタイピン）、銀メタリックパンツ、白い革靴。",
-          tags: "two-tone hair, white outer hair, rainbow inner hair, center part, low ponytail, ponytail over shoulder, rainbow candy ribbon, closed eyes, laughing, open mouth, fangs, white dress shirt, translucent blue vinyl tie, plain silver tie pin, silver metallic pants, white leather shoes"
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: NIJI_FULL },
+            { label: "容姿と表情", text: NIJI_APPEARANCE_SECTION },
+            { label: "服装", text: NIJI_CLOTHING_SECTION }
+          ]
         },
         {
           room: "001", name: "トリィ", epithet: "風景のドレスの少女",
@@ -3346,28 +3925,98 @@
             ["基調", "白×淡い水色"]
           ],
           record: "白い髪を低い位置で二つに結んだツインテール、結び目には淡い水色のリボン。頭上には淡い虹色の輪が浮かぶ。重い瞼の半眼で、どこか眠そうな表情。フリルの襟の白いドレスに、胸元にはスマイルのバッジを留めた大きなリボン。ドレスの前面には縦長のスリットが開き、中に青空と雲、赤い家のある緑の丘と曲がり道の風景が覗く。袖は羽のように広がり、裾からも羽根の形が垂れる。淡い水色の柄タイツ。",
-          tags: "white hair, low twintails, pale blue ribbons, halo, half-closed eyes, sleepy expression, frilled collar, white dress, large bow, smiley badge, landscape window in dress, feather sleeves, pale blue patterned tights"
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: TORII_FULL },
+            { label: "容姿と表情", text: TORII_APPEARANCE },
+            { label: "服装", text: TORII_CLOTHING }
+          ]
         },
         {
           room: "002", name: "エクス", epithet: "男性医師",
           photo: true,
           profile: [],
           record: "",
-          tags: ""
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: EKS_FULL },
+            { label: "容姿と表情", text: EKS_APPEARANCE_SECTION },
+            { label: "服装", text: EKS_CLOTHING }
+          ]
         },
         {
           room: "003", name: "メディ", epithet: "双子ナース（点滴側）",
           photo: true,
           profile: [],
           record: "",
-          tags: ""
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: MEDI_FULL },
+            { label: "容姿と表情", text: MEDI_APPEARANCE },
+            { label: "服装", text: MEDI_CLOTHING }
+          ]
         },
         {
           room: "004", name: "カル", epithet: "双子ナース（献血側）",
           photo: true,
           profile: [],
           record: "",
-          tags: ""
+          tags: "",
+          note: "赤十字が出たら公開せず再生成を",
+          tagsSections: [
+            { label: "全文", text: KARU_FULL },
+            { label: "容姿と表情", text: KARU_APPEARANCE },
+            { label: "服装", text: KARU_CLOTHING },
+            { label: "ネガティブプロンプト（UC）", text: KARU_UC }
+          ]
+        },
+        {
+          room: "005", name: "鍋谷榎", epithet: "",
+          photo: true,
+          profile: [],
+          record: "",
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: ENOKI_FULL },
+            { label: "容姿と表情", text: ENOKI_APPEARANCE },
+            { label: "服装", text: ENOKI_CLOTHING }
+          ]
+        },
+        {
+          room: "006", name: "鍋谷柊", epithet: "",
+          photo: true,
+          profile: [],
+          record: "",
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: HIIRAGI_FULL },
+            { label: "容姿と表情", text: HIIRAGI_APPEARANCE },
+            { label: "服装", text: HIIRAGI_CLOTHING }
+          ]
+        },
+        {
+          room: "007", name: "鈴咲蘭", epithet: "",
+          photo: true,
+          profile: [],
+          record: "",
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: RAN_FULL },
+            { label: "容姿と表情", text: RAN_APPEARANCE },
+            { label: "服装", text: RAN_CLOTHING }
+          ]
+        },
+        {
+          room: "008", name: "鈴咲梨奈", epithet: "",
+          photo: true,
+          profile: [],
+          record: "",
+          tags: "",
+          tagsSections: [
+            { label: "全文", text: RINA_FULL },
+            { label: "容姿と表情", text: RINA_APPEARANCE },
+            { label: "服装", text: RINA_CLOTHING }
+          ]
         }
       ];
 
@@ -3380,6 +4029,11 @@
           title: "36.5", artist: "CHICKEN",
           src: "assets/36.5.mp3", jacket: "assets/jacket-365.jpg",
           dl: "36.5.mp3", dur: "4:07"
+        },
+        {
+          title: "碧落黄泉", artist: "CHICKEN",
+          src: "assets/hekiraku-osen.mp3", jacket: "assets/jacket-hekiraku-osen.jpg",
+          dl: "碧落黄泉.mp3", dur: "2:52"
         },
         {
           title: "碧落黄泉-ﾁｬｲﾆｰｽﾞｽｳｨﾝｸﾞﾀﾞﾌﾞｽﾃREMIX-", artist: "CHICKEN",
@@ -3395,6 +4049,36 @@
           title: "LOOP IN POOL -ﾄﾞﾘｰﾑｺｱｼﾞｬｽﾞﾜﾙﾂREMIX-", artist: "CHICKEN",
           src: "assets/loop-in-pool-remix.mp3", jacket: "assets/jacket-loop-remix.jpg",
           dl: "LOOP IN POOL -ﾄﾞﾘｰﾑｺｱｼﾞｬｽﾞﾜﾙﾂREMIX-.mp3", dur: "2:20"
+        },
+        {
+          title: "獄樂穢土に花錦", artist: "CHICKEN",
+          src: "assets/gokuraku-jodo-ni-hananishiki.mp3", jacket: "assets/jacket-gokuraku.jpg",
+          dl: "獄樂穢土に花錦.mp3", dur: "3:00"
+        },
+        {
+          title: "獄樂穢土-穏華-", artist: "CHICKEN",
+          src: "assets/gokuraku-edo-onka.mp3", jacket: "assets/jacket-gokuraku-edo.jpg",
+          dl: "獄樂穢土-穏華-.mp3", dur: "3:09"
+        },
+        {
+          title: "獄樂穢土-罪華-", artist: "CHICKEN",
+          src: "assets/gokuraku-edo-zaika.mp3", jacket: "assets/jacket-gokuraku-edo-zaika.jpg",
+          dl: "獄樂穢土-罪華-.mp3", dur: "3:17"
+        },
+        {
+          title: "獄樂穢土-浄華-", artist: "CHICKEN",
+          src: "assets/gokuraku-edo-joka.mp3", jacket: "assets/jacket-gokuraku-edo-joka.jpg",
+          dl: "獄樂穢土-浄華-.mp3", dur: "2:59"
+        },
+        {
+          title: "獄樂穢土の花筏", artist: "CHICKEN",
+          src: "assets/gokuraku-edo-no-hanaikada.mp3", jacket: "assets/jacket-entaku.jpg",
+          dl: "獄樂穢土の花筏.mp3", dur: "3:36"
+        },
+        {
+          title: "地獄の沙汰も愛次第", artist: "CHICKEN",
+          src: "assets/jigoku-no-sata-mo-ai-shidai.mp3", jacket: "assets/jacket-engawa.jpg",
+          dl: "地獄の沙汰も愛次第.mp3", dur: "3:00"
         }
       ];
 
@@ -3458,7 +4142,7 @@
         [234.50, 237.47, "my partner in flight", "僕と逃げる旅の連れに"],
         [240.52, 247.20, "Thirty-six point five... warmer than fire...", "隣で息づく温度 それだけで、温かく…"]
       ];
-      var TRACK_LYRICS = [LYRICS_365, null, null, null];
+      var TRACK_LYRICS = [LYRICS_365, null, null, null, null, null, null, null, null];
 
       var views = {
         entrance: document.getElementById("view-entrance"),
@@ -3593,7 +4277,8 @@
       }
       /* folder listing: each resident as a music-room-sized card —
          full-width square face, bold name, room number + epithet,
-         and a red 開く link in the foot */
+         and a hairline foot. The whole card is the button, so no
+         separate open label rides in the foot. */
       function buildFolderIcons(container) {
         CHARACTERS.forEach(function (c, i) {
           var card = document.createElement("button");
@@ -3610,10 +4295,7 @@
           foot.className = "cc-foot";
           var line = document.createElement("span");
           line.className = "rule-line";
-          var open = document.createElement("span");
-          open.className = "cc-open";
-          open.textContent = "開く";
-          foot.appendChild(line); foot.appendChild(open);
+          foot.appendChild(line);
           card.appendChild(face); card.appendChild(nm); card.appendChild(foot);
           card.addEventListener("click", function () { openRoomWindow(i); });
           container.appendChild(card);
@@ -3628,12 +4310,9 @@
         var name = document.createElement("div");
         name.className = "detail-name";
         name.textContent = "CHARACTERS";
-        var epi = document.createElement("div");
-        epi.className = "detail-epithet folder-epi";
-        epi.textContent = T("folderHint");
         var rule = document.createElement("div");
         rule.className = "detail-rule";
-        body.appendChild(name); body.appendChild(epi); body.appendChild(rule);
+        body.appendChild(name); body.appendChild(rule);
         var grid = document.createElement("div");
         grid.className = "char-grid";
         buildFolderIcons(grid);
@@ -3649,7 +4328,16 @@
          lives only in the taskbar until its button brings it back. */
       var winLayer = document.getElementById("win-layer");
       var taskBtnsEl = document.getElementById("task-btns");
-      var winSeq = 0, winZ = 20;
+      var winZ = 20;
+      /* cascade anchor: the position the most recently opened
+         window was actually placed at. Each brand-new window
+         steps +28px right / +28px down from it (wrapping back
+         to the base position at the desktop's edge); restoring
+         a minimized window never moves the anchor, so it never
+         advances the cascade. The player is placed separately
+         and stays out of the cascade entirely. */
+      var cascadeAnchor = null;
+      var CASCADE_STEP = 28, CASCADE_BASE_X = 118, CASCADE_BASE_Y = 18;
       var openWins = {}; /* key -> .win element ("room-3" / "music" / "folder") */
       var activeWin = null;
 
@@ -3662,8 +4350,10 @@
          and the window reopens with exactly that shape, through
          minimize/restore too (those only toggle visibility) —
          and, until the visitor has arranged a window, the
-         reference layout from the screenshot: the folder large
-         at the upper left (62% x 78%), the player at the lower
+         reference layout from the screenshot: it lends the
+         folder its large size (62% x 78%) — its position comes
+         from the cascade in createWindow, not from here — and
+         it places the player at the lower
          right (34% x 55% — the height trimmed from 60% to the
          lowest setting that still clears the anti-clipping
          minimum height below, so the jacket, title, lyrics,
@@ -3885,25 +4575,56 @@
         body.className = "win-body";
         win.appendChild(bar); win.appendChild(body);
         win._key = key; win._bar = bar; win._body = body; win._title = ttl; win._maxBtn = maxB;
-        /* cascade: each new window steps down-right from the last,
-           starting clear of the icon column */
-        var desk = winLayer.getBoundingClientRect();
-        var off = (winSeq % 6) * 28; winSeq += 1;
-        var lx = Math.min(118 + off, Math.max(8, desk.width - 190));
-        var ty = Math.min(18 + off, Math.max(8, desk.height - 170));
-        win.style.left = lx + "px";
-        win.style.top = ty + "px";
         winLayer.appendChild(win);
-        /* never hang off the right edge: on narrow screens the
-           cascade start (clear of the icon column) can exceed the
-           desktop once the window's real width is known */
-        var maxLx = Math.max(8, desk.width - win.offsetWidth - 8);
-        if (lx > maxLx) win.style.left = maxLx + "px";
-        /* fixed layout wins over the cascade: the visitor's saved
-           shape for this window if there is one, else (on a wide
-           enough desktop) the reference arrangement */
-        var startGeom = savedGeom[key] || (desk.width >= 700 ? DEFAULT_GEOM[key] : null);
-        if (startGeom) applyGeom(win, startGeom);
+        /* placement, in order:
+           1. the visitor's saved shape for this window, if there
+              is one — position and size exactly as arranged;
+           2. otherwise the cascade: the new window steps 28px
+              right and 28px down from the position the previously
+              opened window landed at, starting from a base
+              position clear of the icon column; a step that would
+              run off the desktop's right or bottom edge wraps
+              back to that base and starts stepping again. The
+              reference layout (DEFAULT_GEOM) still lends its
+              size on wide desktops — the folder opens large —
+              but never its position.
+           Restoring a minimized window never reaches this code,
+           so re-showing a window keeps its old position and does
+           not advance the cascade. The player is placed
+           separately and stays out of the cascade entirely. */
+        var desk = winLayer.getBoundingClientRect();
+        if (savedGeom[key]) {
+          applyGeom(win, savedGeom[key]);
+        } else {
+          var cx = cascadeAnchor ? cascadeAnchor.x + CASCADE_STEP : CASCADE_BASE_X;
+          var cy = cascadeAnchor ? cascadeAnchor.y + CASCADE_STEP : CASCADE_BASE_Y;
+          if (cx > Math.max(CASCADE_BASE_X, desk.width - 190) ||
+              cy > Math.max(CASCADE_BASE_Y, desk.height - 170)) {
+            cx = CASCADE_BASE_X; cy = CASCADE_BASE_Y;
+          }
+          cx = Math.max(8, Math.min(cx, Math.max(8, desk.width - 190)));
+          cy = Math.max(8, Math.min(cy, Math.max(8, desk.height - 170)));
+          win.style.left = cx + "px";
+          win.style.top = cy + "px";
+          /* never hang off the right edge: on narrow screens the
+             cascade start (clear of the icon column) can exceed
+             the desktop once the window's real width is known */
+          var maxLx = Math.max(8, desk.width - win.offsetWidth - 8);
+          if (cx > maxLx) win.style.left = maxLx + "px";
+          /* the reference size, taken at the cascade position */
+          var defGeom = desk.width >= 700 ? DEFAULT_GEOM[key] : null;
+          if (defGeom && desk.width && desk.height &&
+              (defGeom.w != null || defGeom.h != null)) {
+            applyGeom(win, {
+              l: (parseInt(win.style.left, 10) || 0) / desk.width,
+              t: (parseInt(win.style.top, 10) || 0) / desk.height,
+              w: defGeom.w, h: defGeom.h
+            });
+          }
+        }
+        /* wherever this window actually landed becomes the step
+           the next new window is measured from */
+        cascadeAnchor = { x: win.offsetLeft, y: win.offsetTop };
         openWins[key] = win;
         addTaskButton(win, tbLabel || title);
         addResizeHandles(win);
@@ -4091,30 +4812,49 @@
         var sheet = document.createElement("div");
         sheet.className = "room-sheet";
         body.appendChild(sheet);
-        var th = document.createElement("div");
-        th.className = "tags-head";
-        var thSpan = document.createElement("span");
-        thSpan.className = "tags-label";
-        thSpan.textContent = T("tagsLabel");
-        var copyBtn = document.createElement("button");
-        copyBtn.type = "button";
-        copyBtn.className = "copy-btn";
-        copyBtn.textContent = T("copy");
-        copyBtn.addEventListener("click", function () {
-          function done() {
-            copyBtn.textContent = T("copied");
-            copyBtn.classList.add("copied");
-            setTimeout(function () { copyBtn.textContent = T("copy"); copyBtn.classList.remove("copied"); }, 1800);
+        if (c.note) {
+          var noteEl = document.createElement("p");
+          noteEl.className = "char-note";
+          noteEl.textContent = c.note;
+          sheet.appendChild(noteEl);
+        }
+        function addTagsSection(label, text, fixedLabel) {
+          var th = document.createElement("div");
+          th.className = "tags-head";
+          var thSpan = document.createElement("span");
+          /* fixed section headings (全文 / 容姿と表情 / 服装) use their
+             own class so the language refresh, which rewrites every
+             .tags-label with the generic "Prompt tags" string, can
+             never overwrite them */
+          thSpan.className = fixedLabel ? "tags-sec-label" : "tags-label";
+          thSpan.textContent = label;
+          var copyBtn = document.createElement("button");
+          copyBtn.type = "button";
+          copyBtn.className = "copy-btn";
+          copyBtn.textContent = T("copy");
+          copyBtn.addEventListener("click", function () {
+            function done() {
+              copyBtn.textContent = T("copied");
+              copyBtn.classList.add("copied");
+              setTimeout(function () { copyBtn.textContent = T("copy"); copyBtn.classList.remove("copied"); }, 1800);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+            } else { fallbackCopy(text); done(); }
+          });
+          th.appendChild(thSpan); th.appendChild(copyBtn);
+          var tags = document.createElement("p");
+          tags.className = "tags-box";
+          tags.textContent = text;
+          sheet.appendChild(th); sheet.appendChild(tags);
+        }
+        if (c.tagsSections) {
+          for (var si = 0; si < c.tagsSections.length; si++) {
+            addTagsSection(c.tagsSections[si].label, c.tagsSections[si].text, true);
           }
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(c.tags).then(done, function () { fallbackCopy(c.tags); done(); });
-          } else { fallbackCopy(c.tags); done(); }
-        });
-        th.appendChild(thSpan); th.appendChild(copyBtn);
-        var tags = document.createElement("p");
-        tags.className = "tags-box";
-        tags.textContent = c.tags;
-        sheet.appendChild(th); sheet.appendChild(tags);
+        } else {
+          addTagsSection(T("tagsLabel"), c.tags, false);
+        }
         var nav = document.createElement("nav");
         nav.className = "room-nav";
         nav.setAttribute("aria-label", "前後のキャラクターへ");
@@ -4164,15 +4904,19 @@
         win.classList.add("win-music");
         var body = win._body;
         var name = document.createElement("div");
-        name.className = "detail-name";
-        name.textContent = "MUSIC";
+        name.className = "detail-name music-name";
+        name.appendChild(document.createTextNode("MUSIC"));
+        var headNote = document.createElement("span");
+        headNote.className = "music-head-note";
+        headNote.textContent = T("musicFoot");
+        name.appendChild(headNote);
         var rule = document.createElement("div");
         rule.className = "detail-rule";
         body.appendChild(name); body.appendChild(rule);
         body.appendChild(mgridEl); /* the jacket wall moves in, wiring intact */
         var foot = document.createElement("p");
         foot.className = "win-foot-note";
-        foot.innerHTML = T("musicFoot") + '<br /><span class="mono">ALL TRACKS BY CHICKEN</span>';
+        foot.innerHTML = '<span class="mono">ALL TRACKS BY CHICKEN</span>';
         body.appendChild(foot);
         refreshMusicCards(!audio.paused && !audio.ended);
       }
@@ -4488,10 +5232,8 @@
         for (var n = 0; n < navs.length; n++) {
           if (navs[n].childNodes[0]) navs[n].childNodes[0].nodeValue = navs[n].getAttribute("data-nav") === "prev" ? d.prevRoom : d.nextRoom;
         }
-        var fe = document.querySelector(".folder-epi");
-        if (fe) fe.textContent = d.folderHint;
-        var mf = document.querySelector(".win-foot-note");
-        if (mf) mf.innerHTML = d.musicFoot + '<br /><span class="mono">ALL TRACKS BY CHICKEN</span>';
+        var hn = document.querySelector(".music-head-note");
+        if (hn) hn.textContent = d.musicFoot;
         if (typeof refreshShuffleUI === "function") refreshShuffleUI();
         if (typeof refreshRepeatUI === "function") refreshRepeatUI();
         var lb = document.getElementById("lang-btn");
@@ -4508,29 +5250,16 @@
       applyLang();
 
       /* ---------- start menu ---------- */
-      /* CHICKEN's X (formerly Twitter) profile — the start-menu
-         header tile links here in a new tab. This is the one
-         place the URL lives; clear it back to "" and the tile
-         goes inert again instead of pointing anywhere wrong. */
-      var X_PROFILE_URL = "https://x.com/torichicken__";
+      /* The header tile (icon + CHICKEN name) is plain display —
+         CHICKEN's profiles live as links in the right column. */
       var startBtn = document.getElementById("start-btn");
       var startMenu = document.getElementById("start-menu");
-      var smUserIcon = document.getElementById("sm-user-icon");
-      if (smUserIcon) {
-        if (X_PROFILE_URL) {
-          smUserIcon.setAttribute("href", X_PROFILE_URL);
-          smUserIcon.setAttribute("target", "_blank");
-          smUserIcon.setAttribute("rel", "noopener noreferrer");
-          smUserIcon.removeAttribute("aria-disabled");
-        } else {
-          smUserIcon.removeAttribute("href");
-          smUserIcon.setAttribute("aria-disabled", "true");
-        }
-        smUserIcon.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (!X_PROFILE_URL) e.preventDefault();
-          else toggleStartMenu(false); /* the profile opens in its own tab */
-        });
+      /* external links in the right column (X, zeta, note): each
+         opens its profile in a new tab, and the menu folds away
+         behind it */
+      var smExtLinks = startMenu.querySelectorAll("a.sm-ext");
+      for (var xi = 0; xi < smExtLinks.length; xi++) {
+        smExtLinks[xi].addEventListener("click", function () { toggleStartMenu(false); });
       }
       function toggleStartMenu(force) {
         var open = (typeof force === "boolean") ? force : startMenu.classList.contains("hidden");
@@ -4660,8 +5389,59 @@
         ph.appendChild(no); ph.appendChild(ttl); ph.appendChild(art);
         return ph;
       }
+      /* ---------- music-room title tickers ----------
+         The player's one-way ticker, carried to every track title
+         in the music room with the same timing: hold ~1.6s at the
+         start position, glide left at a constant 70px/s until the
+         text has fully left the box, jump to just off the right
+         edge, then glide back in to the start position and loop.
+         One difference from the player: a card title animates only
+         when it actually overflows its box — a title that fits
+         stays still. Reduced motion (or no WAAPI) leaves every
+         title still. Window resizes, the music window opening and
+         font loading all re-measure through the observers below,
+         so a title starts or stops as its box changes size. */
+      var cardTitles = [];
+      function fitCardTitle(entry) {
+        var box = entry.box, text = entry.text;
+        if (!box || !text) return;
+        requestAnimationFrame(function () {
+          var boxW = box.clientWidth;
+          var textW = text.scrollWidth;
+          var key = text.textContent + "|" + textW + "|" + boxW;
+          if (!boxW || !textW) return;
+          if (key === box._tickerKey && box._tickerAnim) return;
+          if (box._tickerAnim) box._tickerAnim.cancel();
+          box._tickerAnim = null; box._tickerKey = "";
+          text.style.transform = "";
+          if (textW <= boxW) return;
+          if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+          if (!text.animate) return;
+          var speed = 70; /* px per second, both legs — the player's rate */
+          var outMs = (textW + 2) / speed * 1000;
+          var inMs = boxW / speed * 1000;
+          var holdStart = 1600;
+          var total = holdStart + outMs + inMs;
+          var oHold = holdStart / total;
+          var oOut = (holdStart + outMs) / total;
+          box._tickerAnim = text.animate([
+            { transform: "translateX(0)", offset: 0 },
+            { transform: "translateX(0)", offset: oHold },
+            { transform: "translateX(" + (-(textW + 2)) + "px)", offset: oOut },
+            { transform: "translateX(" + boxW + "px)", offset: oOut },
+            { transform: "translateX(0)", offset: 1 }
+          ], { duration: total, iterations: Infinity, easing: "linear" });
+          box._tickerKey = key;
+        });
+      }
+      function fitCardTitles() {
+        cardTitles.forEach(fitCardTitle);
+      }
+      window.addEventListener("resize", fitCardTitles);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCardTitles);
       function buildMusicRoom() {
         mgridEl.innerHTML = "";
+        cardTitles = [];
         TRACKS.forEach(function (t, i) {
           var card = document.createElement("div");
           card.className = "mcard";
@@ -4682,7 +5462,12 @@
           meta.className = "mcard-meta";
           var ttl = document.createElement("div");
           ttl.className = "mcard-title";
-          ttl.textContent = t.title;
+          ttl.title = t.title;
+          var ttlText = document.createElement("span");
+          ttlText.className = "mt-scroll";
+          ttlText.textContent = t.title;
+          ttl.appendChild(ttlText);
+          cardTitles.push({ box: ttl, text: ttlText });
           var sub = document.createElement("div");
           sub.className = "mcard-sub";
           var art = document.createElement("span");
@@ -4707,6 +5492,10 @@
           meta.appendChild(ttl); meta.appendChild(sub); meta.appendChild(foot);
           card.appendChild(play); card.appendChild(meta);
           mgridEl.appendChild(card);
+        });
+        cardTitles.forEach(function (entry) {
+          fitCardTitle(entry);
+          if (window.ResizeObserver) new ResizeObserver(function () { fitCardTitle(entry); }).observe(entry.box);
         });
       }
       function refreshMusicCards(playing) {
